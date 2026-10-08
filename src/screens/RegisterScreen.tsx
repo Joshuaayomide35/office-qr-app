@@ -84,28 +84,10 @@ export default function RegisterScreen() {
       }
 
       console.log('[RegisterScreen] Supabase signUp success:', authData);
-
-      // 2. Insert into profiles table
-      if (authData.user) {
-        console.log('[RegisterScreen] Attempting to create profile for user:', authData.user.id);
-        const { error: profileError } = await supabase.from('profiles').insert([
-          {
-            id: authData.user.id,
-            full_name: trimmedName,
-            email: trimmedEmail,
-            phone_number: formattedPhone,
-            status: 'approved',
-          },
-        ]);
-
-        if (profileError) {
-          console.error('[RegisterScreen] Profile Creation Failed:', profileError);
-          setErrorMessage(profileError.message);
-        } else {
-          console.log('[RegisterScreen] Profile created successfully.');
-          // The AuthContext will automatically detect the session and route to the Waiting Room
-        }
-      }
+      // The profiles row is created server-side by the on_auth_user_created
+      // trigger (see supabase-trigger.sql), from the full_name/phone_number
+      // passed in options.data above. The AuthContext will detect the
+      // session and route to the Waiting Room / Home screen.
     } catch (error: any) {
       console.error('[RegisterScreen] Unexpected error during registration:', error);
       setErrorMessage(error.message || 'An unexpected error occurred.');

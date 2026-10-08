@@ -37,6 +37,7 @@
   },
   "devDependencies": {
     "@types/react": "~19.2.2",
+    "pg": "^8.23.1",
     "typescript": "~6.0.3"
   },
   "scripts": {
@@ -45,6 +46,7 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
+    "build:web": "expo export -p web",
     "lint": "expo lint"
   },
   "private": true

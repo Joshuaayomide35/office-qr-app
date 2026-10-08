@@ -2,7 +2,7 @@ services:
   - type: web
     name: office-qr-app
     env: static
-    buildCommand: npm install && npx expo export -p web
+    buildCommand: npm install && npm run build:web
     staticPublishPath: ./dist
     envVars:
       - key: EXPO_PUBLIC_SUPABASE_URL
