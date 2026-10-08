@@ -100,6 +100,14 @@ export default function HomeScreen() {
             <Text style={styles.secondaryButtonText}>Refresh Status</Text>
           </TouchableOpacity>
 
+          <TouchableOpacity 
+            style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]} 
+            onPress={() => navigation.navigate('Kiosk')}
+            activeOpacity={0.7}
+          >
+            <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Open Kiosk Mode</Text>
+          </TouchableOpacity>
+
           <View style={styles.footer}>
             <TouchableOpacity onPress={handleSignOut} activeOpacity={0.6}>
               <Text style={styles.signOutText}>Sign Out</Text>

@@ -9,6 +9,7 @@ import RegisterScreen from '../screens/RegisterScreen';
 import WaitingRoomScreen from '../screens/WaitingRoomScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScannerScreen from '../screens/ScannerScreen';
+import KioskScreen from '../screens/KioskScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -16,6 +17,7 @@ export type RootStackParamList = {
   WaitingRoom: undefined;
   Home: undefined;
   Scanner: undefined;
+  Kiosk: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -48,6 +50,7 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Scanner" component={ScannerScreen} />
+            <Stack.Screen name="Kiosk" component={KioskScreen} />
           </>
         )}
       </Stack.Navigator>
