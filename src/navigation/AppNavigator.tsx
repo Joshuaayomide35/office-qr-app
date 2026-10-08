@@ -10,6 +10,7 @@ import WaitingRoomScreen from '../screens/WaitingRoomScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScannerScreen from '../screens/ScannerScreen';
 import KioskScreen from '../screens/KioskScreen';
+import AdminScreen from '../screens/AdminScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -18,12 +19,13 @@ export type RootStackParamList = {
   Home: undefined;
   Scanner: undefined;
   Kiosk: undefined;
+  Admin: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { session, status, loading } = useAuth();
+  const { session, status, role, loading } = useAuth();
 
   if (loading) {
     return (
@@ -50,7 +52,12 @@ export default function AppNavigator() {
           <>
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Scanner" component={ScannerScreen} />
-            <Stack.Screen name="Kiosk" component={KioskScreen} />
+            {role === 'admin' && (
+              <>
+                <Stack.Screen name="Kiosk" component={KioskScreen} />
+                <Stack.Screen name="Admin" component={AdminScreen} />
+              </>
+            )}
           </>
         )}
       </Stack.Navigator>

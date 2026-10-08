@@ -3,11 +3,13 @@ import { Session, User } from '@supabase/supabase-js';
 import { supabase } from '../lib/supabase';
 
 type ProfileStatus = 'pending' | 'approved' | 'rejected' | null;
+type ProfileRole = 'employee' | 'admin' | null;
 
 interface AuthContextProps {
   session: Session | null;
   user: User | null;
   status: ProfileStatus;
+  role: ProfileRole;
   loading: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -16,6 +18,7 @@ const AuthContext = createContext<AuthContextProps>({
   session: null,
   user: null,
   status: null,
+  role: null,
   loading: true,
   refreshProfile: async () => {},
 });
@@ -26,24 +29,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<ProfileStatus>(null);
+  const [role, setRole] = useState<ProfileRole>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = async () => {
     if (!user) {
       setStatus(null);
+      setRole(null);
       return;
     }
     const { data, error } = await supabase
       .from('profiles')
-      .select('status')
+      .select('status, role')
       .eq('id', user.id)
       .single();
 
     if (error) {
       console.error('Error fetching profile:', error);
       setStatus(null);
+      setRole(null);
     } else if (data) {
       setStatus(data.status as ProfileStatus);
+      setRole(data.role as ProfileRole);
     }
   };
 
@@ -72,7 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ session, user, status, loading, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, status, role, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

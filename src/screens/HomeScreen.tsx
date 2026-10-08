@@ -9,7 +9,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
-  const { user } = useAuth();
+  const { user, role } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const [profileName, setProfileName] = useState('');
   const [lastScanType, setLastScanType] = useState<'check_in' | 'check_out' | null>(null);
@@ -100,13 +100,25 @@ export default function HomeScreen() {
             <Text style={styles.secondaryButtonText}>Refresh Status</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]} 
-            onPress={() => navigation.navigate('Kiosk')}
-            activeOpacity={0.7}
-          >
-            <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Open Kiosk Mode</Text>
-          </TouchableOpacity>
+          {role === 'admin' && (
+            <>
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: '#6366f1' }]}
+                onPress={() => navigation.navigate('Kiosk')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Open Kiosk Mode</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]}
+                onPress={() => navigation.navigate('Admin')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>View Attendance Log</Text>
+              </TouchableOpacity>
+            </>
+          )}
 
           <View style={styles.footer}>
             <TouchableOpacity onPress={handleSignOut} activeOpacity={0.6}>
