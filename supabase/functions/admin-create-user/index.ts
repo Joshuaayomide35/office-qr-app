@@ -4,14 +4,31 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
+function json(body: unknown, status: number) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, "Content-Type": "application/json" },
+  });
+}
+
 Deno.serve(async (req: Request) => {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") {
-    return new Response(JSON.stringify({ error: "Method not allowed" }), { status: 405 });
+    return json({ error: "Method not allowed" }, 405);
   }
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) {
-    return new Response(JSON.stringify({ error: "Missing Authorization header" }), { status: 401 });
+    return json({ error: "Missing Authorization header" }, 401);
   }
 
   // Client scoped to the caller's own JWT, used only to verify who is calling.
@@ -21,7 +38,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: userData, error: userError } = await callerClient.auth.getUser();
   if (userError || !userData?.user) {
-    return new Response(JSON.stringify({ error: "Invalid session" }), { status: 401 });
+    return json({ error: "Invalid session" }, 401);
   }
 
   const { data: callerProfile, error: profileError } = await callerClient
@@ -31,22 +48,22 @@ Deno.serve(async (req: Request) => {
     .single();
 
   if (profileError || callerProfile?.role !== "admin") {
-    return new Response(JSON.stringify({ error: "Only admins can create employee accounts" }), { status: 403 });
+    return json({ error: "Only admins can create employee accounts" }, 403);
   }
 
   let body: { email?: string; password?: string; full_name?: string; phone_number?: string };
   try {
     body = await req.json();
   } catch {
-    return new Response(JSON.stringify({ error: "Invalid JSON body" }), { status: 400 });
+    return json({ error: "Invalid JSON body" }, 400);
   }
 
   const { email, password, full_name, phone_number } = body;
   if (!email || !password || !full_name) {
-    return new Response(JSON.stringify({ error: "email, password and full_name are required" }), { status: 400 });
+    return json({ error: "email, password and full_name are required" }, 400);
   }
   if (password.length < 6) {
-    return new Response(JSON.stringify({ error: "Password must be at least 6 characters" }), { status: 400 });
+    return json({ error: "Password must be at least 6 characters" }, 400);
   }
 
   // Admin client with full service-role privileges, used only after the
@@ -61,7 +78,7 @@ Deno.serve(async (req: Request) => {
   });
 
   if (createError || !created?.user) {
-    return new Response(JSON.stringify({ error: createError?.message || "Failed to create user" }), { status: 400 });
+    return json({ error: createError?.message || "Failed to create user" }, 400);
   }
 
   // The on_auth_user_created trigger will have inserted a profile row with
@@ -73,11 +90,8 @@ Deno.serve(async (req: Request) => {
     .eq("id", created.user.id);
 
   if (approveError) {
-    return new Response(JSON.stringify({ error: approveError.message }), { status: 500 });
+    return json({ error: approveError.message }, 500);
   }
 
-  return new Response(JSON.stringify({ id: created.user.id, email: created.user.email }), {
-    status: 200,
-    headers: { "Content-Type": "application/json" },
-  });
+  return json({ id: created.user.id, email: created.user.email }, 200);
 });
