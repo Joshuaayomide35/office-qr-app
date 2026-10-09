@@ -207,7 +207,7 @@ export default function AdminScreen() {
                       </View>
                       <Text style={[styles.cell, { width: COLUMN_WIDTHS.date }]}>{formatDate(date)}</Text>
                       <Text style={[styles.cell, { width: COLUMN_WIDTHS.time }]}>
-                        {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        {date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true })}
                       </Text>
                     </View>
                   );
