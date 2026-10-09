@@ -6,9 +6,9 @@ import Avatar from '../components/Avatar';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { AdminStackParamList } from '../navigation/AdminStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Admin'>;
+type NavigationProp = NativeStackNavigationProp<AdminStackParamList, 'Employees'>;
 
 type EmployeeRow = {
   id: string;
@@ -122,16 +122,21 @@ export default function AdminScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7} style={styles.backButton}>
-          <Ionicons name="chevron-back" size={22} color="#6366f1" />
-        </TouchableOpacity>
         <View>
-          <Text style={styles.title}>Attendance</Text>
+          <Text style={styles.title}>Team</Text>
           <Text style={styles.subtitle}>Tap an employee to view their calendar</Text>
         </View>
-        <TouchableOpacity onPress={onRefresh} activeOpacity={0.7} style={styles.backButton}>
-          <Ionicons name="refresh" size={20} color="#6366f1" />
-        </TouchableOpacity>
+        <View style={styles.headerActions}>
+          <TouchableOpacity onPress={() => navigation.navigate('PrintQR')} activeOpacity={0.7} style={styles.backButton}>
+            <Ionicons name="qr-code-outline" size={18} color="#6366f1" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('CreateEmployee')} activeOpacity={0.7} style={styles.backButton}>
+            <Ionicons name="person-add-outline" size={18} color="#6366f1" />
+          </TouchableOpacity>
+          <TouchableOpacity onPress={onRefresh} activeOpacity={0.7} style={styles.backButton}>
+            <Ionicons name="refresh" size={18} color="#6366f1" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {errorMessage ? (
@@ -238,10 +243,14 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: '#1f1f23',
   },
+  headerActions: {
+    flexDirection: 'row',
+    gap: 8,
+  },
   backButton: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: '#18181b',
@@ -250,15 +259,13 @@ const styles = StyleSheet.create({
   },
   title: {
     color: '#ffffff',
-    fontSize: 18,
-    fontWeight: '700',
-    textAlign: 'center',
+    fontSize: 22,
+    fontWeight: '800',
   },
   subtitle: {
     color: '#71717a',
     fontSize: 12,
     marginTop: 2,
-    textAlign: 'center',
   },
   errorBox: {
     flexDirection: 'row',

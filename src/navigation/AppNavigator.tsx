@@ -6,30 +6,18 @@ import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
 import WaitingRoomScreen from '../screens/WaitingRoomScreen';
-import HomeScreen from '../screens/HomeScreen';
-import ScannerScreen from '../screens/ScannerScreen';
-import AdminScreen from '../screens/AdminScreen';
-import ApprovalsScreen from '../screens/ApprovalsScreen';
-import CreateEmployeeScreen from '../screens/CreateEmployeeScreen';
-import EmployeeCalendarScreen from '../screens/EmployeeCalendarScreen';
-import PrintQRScreen from '../screens/PrintQRScreen';
+import MainTabs from './MainTabs';
 
 export type RootStackParamList = {
   Login: undefined;
   WaitingRoom: undefined;
-  Home: undefined;
-  Scanner: undefined;
-  Admin: undefined;
-  Approvals: undefined;
-  CreateEmployee: undefined;
-  EmployeeCalendar: { employeeId: string; employeeName: string };
-  PrintQR: undefined;
+  Main: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
 
 export default function AppNavigator() {
-  const { session, status, role, loading } = useAuth();
+  const { session, status, loading } = useAuth();
 
   if (loading) {
     return (
@@ -46,23 +34,11 @@ export default function AppNavigator() {
           // Unauthenticated Stack — no self sign-up; admins create accounts.
           <Stack.Screen name="Login" component={LoginScreen} />
         ) : status === 'pending' || status === 'rejected' ? (
-          // Pending or Rejected User
+          // Safety fallback: admin-created accounts are auto-approved, so this
+          // should be unreachable in normal use.
           <Stack.Screen name="WaitingRoom" component={WaitingRoomScreen} />
         ) : (
-          // Approved User
-          <>
-            <Stack.Screen name="Home" component={HomeScreen} />
-            <Stack.Screen name="Scanner" component={ScannerScreen} />
-            {role === 'admin' && (
-              <>
-                <Stack.Screen name="Admin" component={AdminScreen} />
-                <Stack.Screen name="Approvals" component={ApprovalsScreen} />
-                <Stack.Screen name="CreateEmployee" component={CreateEmployeeScreen} />
-                <Stack.Screen name="EmployeeCalendar" component={EmployeeCalendarScreen} />
-                <Stack.Screen name="PrintQR" component={PrintQRScreen} />
-              </>
-            )}
-          </>
+          <Stack.Screen name="Main" component={MainTabs} />
         )}
       </Stack.Navigator>
     </NavigationContainer>

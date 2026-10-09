@@ -11,6 +11,7 @@ interface AuthContextProps {
   status: ProfileStatus;
   role: ProfileRole;
   avatarUrl: string | null;
+  closingTime: string | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -21,6 +22,7 @@ const AuthContext = createContext<AuthContextProps>({
   status: null,
   role: null,
   avatarUrl: null,
+  closingTime: null,
   loading: true,
   refreshProfile: async () => {},
 });
@@ -33,6 +35,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [status, setStatus] = useState<ProfileStatus>(null);
   const [role, setRole] = useState<ProfileRole>(null);
   const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [closingTime, setClosingTime] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = async () => {
@@ -40,11 +43,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setStatus(null);
       setRole(null);
       setAvatarUrl(null);
+      setClosingTime(null);
       return;
     }
     const { data, error } = await supabase
       .from('profiles')
-      .select('status, role, avatar_url')
+      .select('status, role, avatar_url, closing_time')
       .eq('id', user.id)
       .single();
 
@@ -53,10 +57,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       setStatus(null);
       setRole(null);
       setAvatarUrl(null);
+      setClosingTime(null);
     } else if (data) {
       setStatus(data.status as ProfileStatus);
       setRole(data.role as ProfileRole);
       setAvatarUrl(data.avatar_url as string | null);
+      setClosingTime(data.closing_time ? (data.closing_time as string).slice(0, 5) : null);
     }
   };
 
@@ -85,7 +91,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ session, user, status, role, avatarUrl, loading, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, status, role, avatarUrl, closingTime, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

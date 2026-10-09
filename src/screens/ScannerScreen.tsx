@@ -6,14 +6,14 @@ import { OFFICE_CHECKIN_TOKEN } from '../constants/qrPayload';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { HomeStackParamList } from '../navigation/HomeStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Scanner'>;
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'Scanner'>;
 
 // Helper to timeout long-running promises (like DB calls)
-const withTimeout = <T,>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> => {
+const withTimeout = <T,>(promise: PromiseLike<T>, ms: number, errorMessage: string): Promise<T> => {
   return Promise.race([
-    promise,
+    Promise.resolve(promise),
     new Promise<T>((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms))
   ]);
 };
@@ -74,19 +74,27 @@ export default function ScannerScreen() {
         throw new Error('Invalid QR Code - Please scan the official office check-in code.');
       }
 
-      // 2. Determine next scan type
-      const { data: logs } = await withTimeout(
+      // 2. Determine next scan type, restricted to one check-in + one check-out per day
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { data: todayLogs } = await withTimeout(
         supabase
           .from('attendance_logs')
           .select('scan_type')
           .eq('user_id', user!.id)
-          .order('timestamp', { ascending: false })
-          .limit(1),
+          .gte('timestamp', todayStart.toISOString())
+          .order('timestamp', { ascending: true }),
         10000,
         'Database request timed out while fetching status.'
       );
-      
-      const nextScanType = (logs && logs.length > 0 && logs[0].scan_type === 'check_in') ? 'check_out' : 'check_in';
+
+      const todayCount = todayLogs?.length || 0;
+      if (todayCount >= 2) {
+        throw new Error("You've already checked in and out today. Come back tomorrow.");
+      }
+
+      const nextScanType = todayCount === 0 ? 'check_in' : 'check_out';
       console.log('[ScannerScreen] Next scan type calculated as:', nextScanType);
 
       // 3. Insert log with 10s timeout
@@ -110,7 +118,7 @@ export default function ScannerScreen() {
       
       // Auto navigate back
       setTimeout(() => {
-        navigation.navigate('Home');
+        navigation.navigate('HomeMain');
       }, 2000);
 
     } catch (error: any) {

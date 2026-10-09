@@ -4,9 +4,9 @@ import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { AdminStackParamList } from '../navigation/AdminStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateEmployee'>;
+type NavigationProp = NativeStackNavigationProp<AdminStackParamList, 'CreateEmployee'>;
 
 export default function CreateEmployeeScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -89,7 +89,7 @@ export default function CreateEmployeeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7} style={styles.backButton}>
+            <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
               <Ionicons name="chevron-back" size={22} color="#6366f1" />
             </TouchableOpacity>
             <View style={{ flex: 1 }}>

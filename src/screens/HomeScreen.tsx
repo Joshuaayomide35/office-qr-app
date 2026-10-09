@@ -1,35 +1,27 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, ScrollView } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
-import { pickAndUploadAvatar } from '../lib/avatar';
-import Avatar from '../components/Avatar';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useFocusEffect } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { HomeStackParamList } from '../navigation/HomeStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
+type NavigationProp = NativeStackNavigationProp<HomeStackParamList, 'HomeMain'>;
+
+type DayState = 'not_started' | 'checked_in' | 'completed';
 
 export default function HomeScreen() {
-  const { user, role, avatarUrl, refreshProfile } = useAuth();
+  const { user } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const [profileName, setProfileName] = useState('');
-  const [lastScanType, setLastScanType] = useState<'check_in' | 'check_out' | null>(null);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [dayState, setDayState] = useState<DayState>('not_started');
   const [loading, setLoading] = useState(true);
-  const [uploadingPhoto, setUploadingPhoto] = useState(false);
-  const [photoError, setPhotoError] = useState('');
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const fetchData = async () => {
     if (!user) return;
     setLoading(true);
 
-    // Fetch profile name
     const { data: profile } = await supabase
       .from('profiles')
       .select('full_name')
@@ -38,47 +30,26 @@ export default function HomeScreen() {
 
     if (profile) setProfileName(profile.full_name);
 
-    // Fetch last attendance log
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
     const { data: logs } = await supabase
       .from('attendance_logs')
       .select('scan_type')
       .eq('user_id', user.id)
-      .order('timestamp', { ascending: false })
-      .limit(1);
+      .gte('timestamp', todayStart.toISOString())
+      .order('timestamp', { ascending: true });
 
-    if (logs && logs.length > 0) {
-      setLastScanType(logs[0].scan_type as 'check_in' | 'check_out');
-    } else {
-      setLastScanType('check_out'); // Default: user needs to check in first
-    }
-
-    if (role === 'admin') {
-      const { count } = await supabase
-        .from('profiles')
-        .select('id', { count: 'exact', head: true })
-        .eq('status', 'pending');
-      setPendingCount(count || 0);
-    }
-
+    const count = logs?.length || 0;
+    setDayState(count >= 2 ? 'completed' : count === 1 ? 'checked_in' : 'not_started');
     setLoading(false);
   };
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut();
-  };
-
-  const handleChangePhoto = async () => {
-    if (!user) return;
-    setPhotoError('');
-    setUploadingPhoto(true);
-    const { error } = await pickAndUploadAvatar(user.id);
-    if (error) {
-      setPhotoError(error);
-    } else {
-      await refreshProfile();
-    }
-    setUploadingPhoto(false);
-  };
+  useFocusEffect(
+    useCallback(() => {
+      fetchData();
+    }, [user])
+  );
 
   if (loading) {
     return (
@@ -88,7 +59,8 @@ export default function HomeScreen() {
     );
   }
 
-  const isCheckedIn = lastScanType === 'check_in';
+  const isCheckedIn = dayState === 'checked_in';
+  const isCompleted = dayState === 'completed';
   const nextAction = isCheckedIn ? 'Check Out' : 'Check In';
   const actionColor = isCheckedIn ? '#ef4444' : '#10b981';
 
@@ -96,95 +68,53 @@ export default function HomeScreen() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
-          
           <View style={styles.header}>
-            <TouchableOpacity onPress={handleChangePhoto} disabled={uploadingPhoto} activeOpacity={0.8} style={styles.avatarWrap}>
-              <Avatar uri={avatarUrl} name={profileName || 'U'} size={84} />
-              <View style={styles.avatarEditBadge}>
-                {uploadingPhoto ? (
-                  <ActivityIndicator size="small" color="#ffffff" />
-                ) : (
-                  <Ionicons name="camera" size={14} color="#ffffff" />
-                )}
-              </View>
-            </TouchableOpacity>
             <Text style={styles.greetingText}>Hello, {profileName}</Text>
-            {photoError ? <Text style={styles.photoErrorText}>{photoError}</Text> : null}
           </View>
 
           <View style={styles.statusSection}>
-            <Text style={styles.statusLabel}>Current Status</Text>
-            <View style={[styles.statusBadge, { backgroundColor: isCheckedIn ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' }]}>
-              <View style={[styles.statusDot, { backgroundColor: isCheckedIn ? '#10b981' : '#ef4444' }]} />
-              <Text style={[styles.statusText, { color: isCheckedIn ? '#10b981' : '#ef4444' }]}>
-                {isCheckedIn ? 'Checked In' : 'Checked Out'}
+            <Text style={styles.statusLabel}>Today's Status</Text>
+            <View
+              style={[
+                styles.statusBadge,
+                { backgroundColor: isCompleted ? 'rgba(113, 113, 122, 0.15)' : isCheckedIn ? 'rgba(16, 185, 129, 0.1)' : 'rgba(239, 68, 68, 0.1)' },
+              ]}
+            >
+              <View
+                style={[
+                  styles.statusDot,
+                  { backgroundColor: isCompleted ? '#71717a' : isCheckedIn ? '#10b981' : '#ef4444' },
+                ]}
+              />
+              <Text
+                style={[
+                  styles.statusText,
+                  { color: isCompleted ? '#a1a1aa' : isCheckedIn ? '#10b981' : '#ef4444' },
+                ]}
+              >
+                {isCompleted ? 'Completed for Today' : isCheckedIn ? 'Checked In' : 'Checked Out'}
               </Text>
             </View>
           </View>
 
-          <TouchableOpacity 
-            style={[styles.primaryButton, { backgroundColor: actionColor }]} 
-            onPress={() => navigation.navigate('Scanner')}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.primaryButtonText}>Scan QR to {nextAction}</Text>
-          </TouchableOpacity>
-          
-          <TouchableOpacity 
-            style={styles.secondaryButton} 
-            onPress={fetchData}
-            activeOpacity={0.7}
-          >
-            <Text style={styles.secondaryButtonText}>Refresh Status</Text>
-          </TouchableOpacity>
-
-          {role === 'admin' && (
-            <>
-              <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: '#6366f1' }]}
-                onPress={() => navigation.navigate('CreateEmployee')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Create Employee Account</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]}
-                onPress={() => navigation.navigate('PrintQR')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Print Check-In QR</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]}
-                onPress={() => navigation.navigate('Admin')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>View Employees</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }]}
-                onPress={() => navigation.navigate('Approvals')}
-                activeOpacity={0.7}
-              >
-                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Pending Approvals</Text>
-                {pendingCount > 0 && (
-                  <View style={styles.badge}>
-                    <Text style={styles.badgeText}>{pendingCount}</Text>
-                  </View>
-                )}
-              </TouchableOpacity>
-            </>
+          {isCompleted ? (
+            <View style={styles.doneBox}>
+              <Ionicons name="checkmark-circle" size={20} color="#10b981" />
+              <Text style={styles.doneText}>You've checked in and out today. See you tomorrow.</Text>
+            </View>
+          ) : (
+            <TouchableOpacity
+              style={[styles.primaryButton, { backgroundColor: actionColor }]}
+              onPress={() => navigation.navigate('Scanner')}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.primaryButtonText}>Scan QR to {nextAction}</Text>
+            </TouchableOpacity>
           )}
 
-          <View style={styles.footer}>
-            <TouchableOpacity onPress={handleSignOut} activeOpacity={0.6}>
-              <Text style={styles.signOutText}>Sign Out</Text>
-            </TouchableOpacity>
-          </View>
-
+          <TouchableOpacity style={styles.secondaryButton} onPress={fetchData} activeOpacity={0.7}>
+            <Text style={styles.secondaryButtonText}>Refresh Status</Text>
+          </TouchableOpacity>
         </View>
       </ScrollView>
     </View>
@@ -226,30 +156,6 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     alignItems: 'center',
   },
-  avatarWrap: {
-    marginBottom: 14,
-    // @ts-ignore
-    cursor: 'pointer',
-  },
-  avatarEditBadge: {
-    position: 'absolute',
-    bottom: 0,
-    right: 0,
-    width: 26,
-    height: 26,
-    borderRadius: 13,
-    backgroundColor: '#6366f1',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#121214',
-  },
-  photoErrorText: {
-    color: '#ef4444',
-    fontSize: 12,
-    marginTop: 8,
-    textAlign: 'center',
-  },
   greetingText: {
     fontSize: 26,
     fontWeight: '700',
@@ -287,6 +193,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
   },
+  doneBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: 'rgba(16, 185, 129, 0.08)',
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.25)',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 16,
+  },
+  doneText: {
+    flex: 1,
+    color: '#a1a1aa',
+    fontSize: 13,
+    lineHeight: 19,
+  },
   primaryButton: {
     height: 56,
     borderRadius: 12,
@@ -309,7 +232,6 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 32,
     // @ts-ignore
     cursor: 'pointer',
   },
@@ -317,32 +239,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '500',
-  },
-  badge: {
-    backgroundColor: '#ef4444',
-    borderRadius: 10,
-    minWidth: 20,
-    height: 20,
-    paddingHorizontal: 5,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  badgeText: {
-    color: '#ffffff',
-    fontSize: 11,
-    fontWeight: '700',
-  },
-  footer: {
-    alignItems: 'center',
-    borderTopWidth: 1,
-    borderTopColor: '#27272a',
-    paddingTop: 16,
-  },
-  signOutText: {
-    color: '#a1a1aa',
-    fontSize: 14,
-    fontWeight: '500',
-    // @ts-ignore
-    cursor: 'pointer',
   },
 });

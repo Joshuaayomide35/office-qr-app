@@ -3,9 +3,9 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { AdminStackParamList } from '../navigation/AdminStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'PrintQR'>;
+type NavigationProp = NativeStackNavigationProp<AdminStackParamList, 'PrintQR'>;
 
 export default function PrintQRScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -13,7 +13,7 @@ export default function PrintQRScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7} style={styles.backButton}>
+        <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
           <Ionicons name="chevron-back" size={22} color="#6366f1" />
         </TouchableOpacity>
         <View>

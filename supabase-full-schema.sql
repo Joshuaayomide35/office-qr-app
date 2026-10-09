@@ -13,9 +13,10 @@ CREATE TABLE IF NOT EXISTS profiles (
     full_name TEXT NOT NULL,
     email TEXT NOT NULL,
     phone_number TEXT,
-    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
+    status TEXT DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
     role TEXT DEFAULT 'employee' CHECK (role IN ('employee', 'admin')),
     avatar_url TEXT,
+    closing_time TIME,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -83,7 +84,7 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     NEW.email,
     NEW.raw_user_meta_data->>'phone_number',
-    'pending',
+    'approved',
     'employee'
   )
   ON CONFLICT (id) DO NOTHING;
@@ -153,3 +154,34 @@ CREATE POLICY "Users can update own avatar"
 
 -- Promote a user to admin manually, e.g.:
 -- UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
+
+-- Direct messages between any two approved users.
+CREATE TABLE IF NOT EXISTS messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    sender_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    recipient_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
+    content TEXT NOT NULL CHECK (char_length(content) > 0 AND char_length(content) <= 2000),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
+    read_at TIMESTAMP WITH TIME ZONE
+);
+
+CREATE INDEX IF NOT EXISTS idx_messages_conversation
+    ON messages (least(sender_id, recipient_id), greatest(sender_id, recipient_id), created_at);
+
+ALTER TABLE messages ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Users can view their own conversations"
+    ON messages FOR SELECT
+    USING (auth.uid() = sender_id OR auth.uid() = recipient_id);
+
+CREATE POLICY "Users can send messages as themselves"
+    ON messages FOR INSERT
+    WITH CHECK (auth.uid() = sender_id AND sender_id <> recipient_id);
+
+CREATE POLICY "Recipients can mark messages read"
+    ON messages FOR UPDATE
+    USING (auth.uid() = recipient_id)
+    WITH CHECK (auth.uid() = recipient_id);
+
+-- Enable realtime updates so chat screens get new messages live.
+ALTER PUBLICATION supabase_realtime ADD TABLE messages;

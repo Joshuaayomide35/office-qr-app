@@ -5,10 +5,10 @@ import { supabase } from '../lib/supabase';
 import Avatar from '../components/Avatar';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { AdminStackParamList } from '../navigation/AdminStack';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'EmployeeCalendar'>;
-type ScreenRouteProp = RouteProp<RootStackParamList, 'EmployeeCalendar'>;
+type NavigationProp = NativeStackNavigationProp<AdminStackParamList, 'EmployeeCalendar'>;
+type ScreenRouteProp = RouteProp<AdminStackParamList, 'EmployeeCalendar'>;
 
 type LogEntry = {
   id: string;
