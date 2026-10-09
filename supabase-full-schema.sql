@@ -7,7 +7,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     full_name TEXT NOT NULL,
     email TEXT NOT NULL,
     phone_number TEXT,
-    status TEXT DEFAULT 'approved' CHECK (status IN ('pending', 'approved', 'rejected')),
+    status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     role TEXT DEFAULT 'employee' CHECK (role IN ('employee', 'admin')),
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
@@ -75,7 +75,7 @@ BEGIN
     COALESCE(NEW.raw_user_meta_data->>'full_name', ''),
     NEW.email,
     NEW.raw_user_meta_data->>'phone_number',
-    'approved',
+    'pending',
     'employee'
   )
   ON CONFLICT (id) DO NOTHING;
@@ -118,6 +118,12 @@ CREATE POLICY "Admins can view all profiles"
 CREATE POLICY "Admins can view all attendance logs"
     ON attendance_logs FOR SELECT
     USING (public.is_admin());
+
+-- Admins can approve/reject pending employees and manage roles.
+CREATE POLICY "Admins can update any profile"
+    ON profiles FOR UPDATE
+    USING (public.is_admin())
+    WITH CHECK (public.is_admin());
 
 -- Promote a user to admin manually, e.g.:
 -- UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';

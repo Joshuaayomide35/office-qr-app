@@ -13,6 +13,7 @@ export default function HomeScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [profileName, setProfileName] = useState('');
   const [lastScanType, setLastScanType] = useState<'check_in' | 'check_out' | null>(null);
+  const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -44,6 +45,14 @@ export default function HomeScreen() {
       setLastScanType(logs[0].scan_type as 'check_in' | 'check_out');
     } else {
       setLastScanType('check_out'); // Default: user needs to check in first
+    }
+
+    if (role === 'admin') {
+      const { count } = await supabase
+        .from('profiles')
+        .select('id', { count: 'exact', head: true })
+        .eq('status', 'pending');
+      setPendingCount(count || 0);
     }
 
     setLoading(false);
@@ -116,6 +125,19 @@ export default function HomeScreen() {
                 activeOpacity={0.7}
               >
                 <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>View Attendance Log</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 8 }]}
+                onPress={() => navigation.navigate('Approvals')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Pending Approvals</Text>
+                {pendingCount > 0 && (
+                  <View style={styles.badge}>
+                    <Text style={styles.badgeText}>{pendingCount}</Text>
+                  </View>
+                )}
               </TouchableOpacity>
             </>
           )}
@@ -234,6 +256,20 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 15,
     fontWeight: '500',
+  },
+  badge: {
+    backgroundColor: '#ef4444',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    paddingHorizontal: 5,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  badgeText: {
+    color: '#ffffff',
+    fontSize: 11,
+    fontWeight: '700',
   },
   footer: {
     alignItems: 'center',
