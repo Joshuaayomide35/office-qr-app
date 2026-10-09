@@ -25,8 +25,9 @@ CREATE TABLE IF NOT EXISTS attendance_logs (
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE NOT NULL,
     scan_type TEXT CHECK (scan_type IN ('check_in', 'check_out')) NOT NULL,
     timestamp TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL,
-    latitude FLOAT NOT NULL,
-    longitude FLOAT NOT NULL
+    -- Nullable: location is no longer captured by the app.
+    latitude FLOAT,
+    longitude FLOAT
 );
 
 -- Enable Row Level Security (RLS)

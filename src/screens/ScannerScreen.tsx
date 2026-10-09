@@ -1,7 +1,6 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
 import { OFFICE_CHECKIN_TOKEN } from '../constants/qrPayload';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +10,7 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Scanner'>;
 
-// Helper to timeout long-running promises (like GPS or DB calls)
+// Helper to timeout long-running promises (like DB calls)
 const withTimeout = <T,>(promise: Promise<T>, ms: number, errorMessage: string): Promise<T> => {
   return Promise.race([
     promise,
@@ -21,43 +20,28 @@ const withTimeout = <T,>(promise: Promise<T>, ms: number, errorMessage: string):
 
 export default function ScannerScreen() {
   const [cameraPermission, requestCameraPermission] = useCameraPermissions();
-  const [locationPermission, setLocationPermission] = useState<Location.LocationPermissionResponse | null>(null);
   const [scanned, setScanned] = useState(false);
   const [processing, setProcessing] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
-  
+
   const { user } = useAuth();
   const navigation = useNavigation<NavigationProp>();
 
-  useEffect(() => {
-    (async () => {
-      try {
-        const locationStatus = await Location.requestForegroundPermissionsAsync();
-        setLocationPermission(locationStatus);
-      } catch (err) {
-        console.error("Location permission error:", err);
-      }
-    })();
-  }, []);
-
-  if (!cameraPermission || !locationPermission) {
+  if (!cameraPermission) {
     return <View style={styles.container}><ActivityIndicator size="large" color="#6366f1" /></View>;
   }
 
-  if (!cameraPermission.granted || !locationPermission.granted) {
+  if (!cameraPermission.granted) {
     return (
       <View style={styles.container}>
         <View style={styles.messageBox}>
-          <Text style={styles.errorText}>Camera and Location permissions are required to scan QR codes.</Text>
-          <TouchableOpacity 
+          <Text style={styles.errorText}>Camera permission is required to scan QR codes.</Text>
+          <TouchableOpacity
             style={styles.primaryButton}
-            onPress={() => {
-              requestCameraPermission();
-              Location.requestForegroundPermissionsAsync().then(setLocationPermission);
-            }}
+            onPress={requestCameraPermission}
           >
-            <Text style={styles.buttonText}>Request Permissions Again</Text>
+            <Text style={styles.buttonText}>Request Permission Again</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.secondaryButton} onPress={() => navigation.goBack()}>
             <Text style={styles.secondaryButtonText}>Go Back</Text>
@@ -90,20 +74,7 @@ export default function ScannerScreen() {
         throw new Error('Invalid QR Code - Please scan the official office check-in code.');
       }
 
-      console.log('[ScannerScreen] Fetching location...');
-      
-      // 2. Fetch Location with 10s timeout
-      const location = await withTimeout(
-        Location.getCurrentPositionAsync({
-          accuracy: Platform.OS === 'web' ? Location.Accuracy.Balanced : Location.Accuracy.High,
-        }),
-        10000,
-        'GPS request timed out. Please check your signal and try again.'
-      );
-      
-      console.log('[ScannerScreen] Location obtained:', location.coords);
-
-      // 3. Determine next scan type
+      // 2. Determine next scan type
       const { data: logs } = await withTimeout(
         supabase
           .from('attendance_logs')
@@ -118,14 +89,12 @@ export default function ScannerScreen() {
       const nextScanType = (logs && logs.length > 0 && logs[0].scan_type === 'check_in') ? 'check_out' : 'check_in';
       console.log('[ScannerScreen] Next scan type calculated as:', nextScanType);
 
-      // 4. Insert log with 10s timeout
+      // 3. Insert log with 10s timeout
       const { error } = await withTimeout(
         supabase.from('attendance_logs').insert([
           {
             user_id: user!.id,
             scan_type: nextScanType,
-            latitude: location.coords.latitude,
-            longitude: location.coords.longitude,
           }
         ]),
         10000,
