@@ -12,6 +12,7 @@ import KioskScreen from '../screens/KioskScreen';
 import AdminScreen from '../screens/AdminScreen';
 import ApprovalsScreen from '../screens/ApprovalsScreen';
 import CreateEmployeeScreen from '../screens/CreateEmployeeScreen';
+import EmployeeCalendarScreen from '../screens/EmployeeCalendarScreen';
 
 export type RootStackParamList = {
   Login: undefined;
@@ -22,6 +23,7 @@ export type RootStackParamList = {
   Admin: undefined;
   Approvals: undefined;
   CreateEmployee: undefined;
+  EmployeeCalendar: { employeeId: string; employeeName: string };
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -57,6 +59,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="Admin" component={AdminScreen} />
                 <Stack.Screen name="Approvals" component={ApprovalsScreen} />
                 <Stack.Screen name="CreateEmployee" component={CreateEmployeeScreen} />
+                <Stack.Screen name="EmployeeCalendar" component={EmployeeCalendarScreen} />
               </>
             )}
           </>

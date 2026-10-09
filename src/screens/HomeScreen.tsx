@@ -132,7 +132,7 @@ export default function HomeScreen() {
                 onPress={() => navigation.navigate('Admin')}
                 activeOpacity={0.7}
               >
-                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>View Attendance Log</Text>
+                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>View Employees</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
