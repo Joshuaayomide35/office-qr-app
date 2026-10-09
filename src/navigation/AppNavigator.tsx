@@ -5,23 +5,23 @@ import { useAuth } from '../context/AuthContext';
 import { ActivityIndicator, View } from 'react-native';
 
 import LoginScreen from '../screens/LoginScreen';
-import RegisterScreen from '../screens/RegisterScreen';
 import WaitingRoomScreen from '../screens/WaitingRoomScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScannerScreen from '../screens/ScannerScreen';
 import KioskScreen from '../screens/KioskScreen';
 import AdminScreen from '../screens/AdminScreen';
 import ApprovalsScreen from '../screens/ApprovalsScreen';
+import CreateEmployeeScreen from '../screens/CreateEmployeeScreen';
 
 export type RootStackParamList = {
   Login: undefined;
-  Register: undefined;
   WaitingRoom: undefined;
   Home: undefined;
   Scanner: undefined;
   Kiosk: undefined;
   Admin: undefined;
   Approvals: undefined;
+  CreateEmployee: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -41,11 +41,8 @@ export default function AppNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!session ? (
-          // Unauthenticated Stack
-          <>
-            <Stack.Screen name="Login" component={LoginScreen} />
-            <Stack.Screen name="Register" component={RegisterScreen} />
-          </>
+          // Unauthenticated Stack — no self sign-up; admins create accounts.
+          <Stack.Screen name="Login" component={LoginScreen} />
         ) : status === 'pending' || status === 'rejected' ? (
           // Pending or Rejected User
           <Stack.Screen name="WaitingRoom" component={WaitingRoomScreen} />
@@ -59,6 +56,7 @@ export default function AppNavigator() {
                 <Stack.Screen name="Kiosk" component={KioskScreen} />
                 <Stack.Screen name="Admin" component={AdminScreen} />
                 <Stack.Screen name="Approvals" component={ApprovalsScreen} />
+                <Stack.Screen name="CreateEmployee" component={CreateEmployeeScreen} />
               </>
             )}
           </>

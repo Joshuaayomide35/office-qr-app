@@ -113,6 +113,14 @@ export default function HomeScreen() {
             <>
               <TouchableOpacity
                 style={[styles.secondaryButton, { borderColor: '#6366f1' }]}
+                onPress={() => navigation.navigate('CreateEmployee')}
+                activeOpacity={0.7}
+              >
+                <Text style={[styles.secondaryButtonText, { color: '#6366f1' }]}>Create Employee Account</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.secondaryButton, { borderColor: '#6366f1', marginTop: -16 }]}
                 onPress={() => navigation.navigate('Kiosk')}
                 activeOpacity={0.7}
               >

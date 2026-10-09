@@ -1,3 +1,9 @@
+-- NOTE: self sign-up is disabled in the app (no Register screen). Accounts
+-- are created by an admin via the "admin-create-user" Edge Function, which
+-- uses the service role key to call auth.admin.createUser() and then
+-- immediately marks the new profile as 'approved'. See supabase/functions/
+-- admin-create-user/index.ts.
+
 -- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 

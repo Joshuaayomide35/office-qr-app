@@ -1,112 +1,101 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
 
-type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Register'>;
+type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'CreateEmployee'>;
 
-export default function RegisterScreen() {
+export default function CreateEmployeeScreen() {
   const navigation = useNavigation<NavigationProp>();
-  
+
   const [fullName, setFullName] = useState('');
   const [email, setEmail] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [password, setPassword] = useState('');
-  
+
   const [errorMessage, setErrorMessage] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [loading, setLoading] = useState(false);
 
-  const validateEmail = (email: string) => {
-    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
-  };
+  const validateEmail = (value: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value);
 
   const handlePhoneChange = (text: string) => {
-    const sanitized = text.replace(/[^0-9]/g, '');
-    setPhoneNumber(sanitized);
+    setPhoneNumber(text.replace(/[^0-9]/g, ''));
   };
 
-  const handleRegister = async () => {
-    console.log('[RegisterScreen] Register button clicked');
-    console.log('[RegisterScreen] Form values before validation:', { fullName, email, phoneNumber, passwordLength: password.length });
-    
+  const resetForm = () => {
+    setFullName('');
+    setEmail('');
+    setPhoneNumber('');
+    setPassword('');
+  };
+
+  const handleCreate = async () => {
     setErrorMessage('');
-    let newErrors: { [key: string]: string } = {};
+    setSuccessMessage('');
+    const newErrors: { [key: string]: string } = {};
 
     const trimmedName = fullName.trim();
     const trimmedEmail = email.trim();
 
-    if (trimmedName.length < 2) {
-      newErrors.fullName = 'Full name must be at least 2 characters.';
-    }
-    if (!validateEmail(trimmedEmail)) {
-      newErrors.email = 'Please enter a valid email address.';
-    }
-    if (phoneNumber.length < 10 || phoneNumber.length > 11) {
-      newErrors.phoneNumber = 'Phone number must be 10 or 11 digits.';
-    }
-    if (password.length < 6) {
-      newErrors.password = 'Password must be at least 6 characters.';
-    }
+    if (trimmedName.length < 2) newErrors.fullName = 'Full name must be at least 2 characters.';
+    if (!validateEmail(trimmedEmail)) newErrors.email = 'Please enter a valid email address.';
+    if (phoneNumber.length < 10 || phoneNumber.length > 11) newErrors.phoneNumber = 'Phone number must be 10 or 11 digits.';
+    if (password.length < 6) newErrors.password = 'Password must be at least 6 characters.';
 
     if (Object.keys(newErrors).length > 0) {
-      console.log('[RegisterScreen] Validation failed:', newErrors);
       setErrors(newErrors);
-      setErrorMessage('Please fix the errors in the form before submitting.');
+      setErrorMessage('Please fix the errors below.');
       return;
     }
 
     setErrors({});
     setLoading(true);
-    
-    try {
-      const formattedPhone = `+234${phoneNumber}`;
-      console.log('[RegisterScreen] Form valid, attempting Supabase signUp...');
 
-      // 1. Sign up user via Supabase Auth
-      const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: trimmedEmail,
-        password,
-        options: {
-          data: {
-            full_name: trimmedName,
-            phone_number: formattedPhone
-          }
-        }
+    try {
+      const { data, error } = await supabase.functions.invoke('admin-create-user', {
+        body: {
+          email: trimmedEmail,
+          password,
+          full_name: trimmedName,
+          phone_number: `+234${phoneNumber}`,
+        },
       });
 
-      if (authError) {
-        console.error('[RegisterScreen] Supabase signUp error:', authError);
-        setErrorMessage(authError.message);
+      if (error) {
+        setErrorMessage(error.message || 'Failed to create account.');
+        return;
+      }
+      if (data?.error) {
+        setErrorMessage(data.error);
         return;
       }
 
-      console.log('[RegisterScreen] Supabase signUp success:', authData);
-      // The profiles row is created server-side by the on_auth_user_created
-      // trigger (see supabase-trigger.sql), from the full_name/phone_number
-      // passed in options.data above. The AuthContext will detect the
-      // session and route to the Waiting Room / Home screen.
-    } catch (error: any) {
-      console.error('[RegisterScreen] Unexpected error during registration:', error);
-      setErrorMessage(error.message || 'An unexpected error occurred.');
+      setSuccessMessage(`Account created for ${trimmedEmail}. Share the email and password with them directly.`);
+      resetForm();
+    } catch (err: any) {
+      setErrorMessage(err.message || 'An unexpected error occurred.');
     } finally {
       setLoading(false);
-      console.log('[RegisterScreen] Registration flow completed (finally block)');
     }
   };
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <ScrollView contentContainerStyle={styles.scrollContainer} keyboardShouldPersistTaps="handled">
         <View style={styles.card}>
           <View style={styles.header}>
-            <Text style={styles.title}>Create an account</Text>
-            <Text style={styles.subtitle}>Enter your details to access the office dashboard.</Text>
+            <TouchableOpacity onPress={() => navigation.navigate('Home')} activeOpacity={0.7} style={styles.backButton}>
+              <Ionicons name="chevron-back" size={22} color="#6366f1" />
+            </TouchableOpacity>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.title}>Create Employee Account</Text>
+              <Text style={styles.subtitle}>Set their login directly — no self sign-up.</Text>
+            </View>
           </View>
 
           <View style={styles.inputGroup}>
@@ -116,12 +105,12 @@ export default function RegisterScreen() {
               placeholder="John Doe"
               placeholderTextColor="#a1a1aa"
               value={fullName}
-              onChangeText={(text) => { setFullName(text); setErrors(prev => ({...prev, fullName: ''})); setErrorMessage(''); }}
+              onChangeText={(text) => { setFullName(text); setErrors((p) => ({ ...p, fullName: '' })); }}
               autoCapitalize="words"
             />
             {errors.fullName ? <Text style={styles.errorText}>{errors.fullName}</Text> : null}
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Email</Text>
             <TextInput
@@ -129,13 +118,13 @@ export default function RegisterScreen() {
               placeholder="name@example.com"
               placeholderTextColor="#a1a1aa"
               value={email}
-              onChangeText={(text) => { setEmail(text); setErrors(prev => ({...prev, email: ''})); setErrorMessage(''); }}
+              onChangeText={(text) => { setEmail(text); setErrors((p) => ({ ...p, email: '' })); }}
               autoCapitalize="none"
               keyboardType="email-address"
             />
             {errors.email ? <Text style={styles.errorText}>{errors.email}</Text> : null}
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Phone Number</Text>
             <View style={[styles.phoneInputContainer, errors.phoneNumber && styles.inputError]}>
@@ -148,22 +137,22 @@ export default function RegisterScreen() {
                 placeholder="801 234 5678"
                 placeholderTextColor="#a1a1aa"
                 value={phoneNumber}
-                onChangeText={(text) => { handlePhoneChange(text); setErrors(prev => ({...prev, phoneNumber: ''})); setErrorMessage(''); }}
+                onChangeText={(text) => { handlePhoneChange(text); setErrors((p) => ({ ...p, phoneNumber: '' })); }}
                 keyboardType="number-pad"
                 maxLength={11}
               />
             </View>
             {errors.phoneNumber ? <Text style={styles.errorText}>{errors.phoneNumber}</Text> : null}
           </View>
-          
+
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Password</Text>
             <TextInput
               style={[styles.input, errors.password && styles.inputError]}
-              placeholder="••••••••"
+              placeholder="Set their login password"
               placeholderTextColor="#a1a1aa"
               value={password}
-              onChangeText={(text) => { setPassword(text); setErrors(prev => ({...prev, password: ''})); setErrorMessage(''); }}
+              onChangeText={(text) => { setPassword(text); setErrors((p) => ({ ...p, password: '' })); }}
               secureTextEntry
             />
             {errors.password ? <Text style={styles.errorText}>{errors.password}</Text> : null}
@@ -175,21 +164,21 @@ export default function RegisterScreen() {
             </View>
           ) : null}
 
-          <TouchableOpacity 
-            style={[styles.button, loading && styles.buttonDisabled]} 
-            onPress={handleRegister} 
+          {successMessage ? (
+            <View style={styles.successContainer}>
+              <Ionicons name="checkmark-circle" size={16} color="#10b981" />
+              <Text style={styles.successText}>{successMessage}</Text>
+            </View>
+          ) : null}
+
+          <TouchableOpacity
+            style={[styles.button, loading && styles.buttonDisabled]}
+            onPress={handleCreate}
             disabled={loading}
             activeOpacity={0.8}
           >
-            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Register</Text>}
+            {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Create Account</Text>}
           </TouchableOpacity>
-          
-          <View style={styles.footer}>
-            <Text style={styles.footerText}>Already have an account? </Text>
-            <TouchableOpacity onPress={() => navigation.navigate('Login')} disabled={loading}>
-              <Text style={styles.footerLink}>Sign in</Text>
-            </TouchableOpacity>
-          </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
@@ -215,26 +204,32 @@ const styles = StyleSheet.create({
     padding: 32,
     borderWidth: 1,
     borderColor: '#27272a',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
   },
   header: {
-    marginBottom: 32,
+    flexDirection: 'row',
     alignItems: 'center',
+    gap: 12,
+    marginBottom: 28,
+  },
+  backButton: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#18181b',
+    borderWidth: 1,
+    borderColor: '#27272a',
   },
   title: {
-    fontSize: 24,
+    fontSize: 18,
     fontWeight: '700',
     color: '#ffffff',
-    marginBottom: 8,
   },
   subtitle: {
-    fontSize: 14,
-    color: '#a1a1aa',
-    textAlign: 'center',
+    fontSize: 12,
+    color: '#71717a',
+    marginTop: 2,
   },
   inputGroup: {
     marginBottom: 20,
@@ -295,7 +290,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     height: '100%',
     paddingRight: 16,
-    // @ts-ignore - for web cursor
+    // @ts-ignore
     cursor: 'text',
   },
   errorContainer: {
@@ -311,6 +306,22 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: 'center',
   },
+  successContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+    padding: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(16, 185, 129, 0.3)',
+    marginBottom: 16,
+  },
+  successText: {
+    color: '#10b981',
+    fontSize: 13,
+    flexShrink: 1,
+  },
   button: {
     height: 48,
     backgroundColor: '#6366f1',
@@ -318,7 +329,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginTop: 8,
-    // @ts-ignore - for web cursor
+    // @ts-ignore
     cursor: 'pointer',
   },
   buttonDisabled: {
@@ -328,21 +339,5 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     fontSize: 16,
     fontWeight: '600',
-  },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'center',
-    marginTop: 24,
-  },
-  footerText: {
-    color: '#a1a1aa',
-    fontSize: 14,
-  },
-  footerLink: {
-    color: '#6366f1',
-    fontSize: 14,
-    fontWeight: '500',
-    // @ts-ignore
-    cursor: 'pointer',
   },
 });
