@@ -8,22 +8,22 @@ import LoginScreen from '../screens/LoginScreen';
 import WaitingRoomScreen from '../screens/WaitingRoomScreen';
 import HomeScreen from '../screens/HomeScreen';
 import ScannerScreen from '../screens/ScannerScreen';
-import KioskScreen from '../screens/KioskScreen';
 import AdminScreen from '../screens/AdminScreen';
 import ApprovalsScreen from '../screens/ApprovalsScreen';
 import CreateEmployeeScreen from '../screens/CreateEmployeeScreen';
 import EmployeeCalendarScreen from '../screens/EmployeeCalendarScreen';
+import PrintQRScreen from '../screens/PrintQRScreen';
 
 export type RootStackParamList = {
   Login: undefined;
   WaitingRoom: undefined;
   Home: undefined;
   Scanner: undefined;
-  Kiosk: undefined;
   Admin: undefined;
   Approvals: undefined;
   CreateEmployee: undefined;
   EmployeeCalendar: { employeeId: string; employeeName: string };
+  PrintQR: undefined;
 };
 
 const Stack = createNativeStackNavigator<RootStackParamList>();
@@ -55,11 +55,11 @@ export default function AppNavigator() {
             <Stack.Screen name="Scanner" component={ScannerScreen} />
             {role === 'admin' && (
               <>
-                <Stack.Screen name="Kiosk" component={KioskScreen} />
                 <Stack.Screen name="Admin" component={AdminScreen} />
                 <Stack.Screen name="Approvals" component={ApprovalsScreen} />
                 <Stack.Screen name="CreateEmployee" component={CreateEmployeeScreen} />
                 <Stack.Screen name="EmployeeCalendar" component={EmployeeCalendarScreen} />
+                <Stack.Screen name="PrintQR" component={PrintQRScreen} />
               </>
             )}
           </>

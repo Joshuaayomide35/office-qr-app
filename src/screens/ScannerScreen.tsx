@@ -3,6 +3,7 @@ import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform }
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as Location from 'expo-location';
 import { supabase } from '../lib/supabase';
+import { OFFICE_CHECKIN_TOKEN } from '../constants/qrPayload';
 import { useAuth } from '../context/AuthContext';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -85,14 +86,8 @@ export default function ScannerScreen() {
         throw new Error('Invalid QR Code - Please scan the official front desk screen.');
       }
 
-      if (parsedData.type !== 'office_checkin' || !parsedData.timestamp || !parsedData.token) {
-        throw new Error('Invalid QR Code - Please scan the official front desk screen.');
-      }
-
-      // Check if QR code is older than 60 seconds
-      const now = Date.now();
-      if (now - parsedData.timestamp > 60000) {
-        throw new Error('QR Code Expired - Please scan the screen again.');
+      if (parsedData.type !== 'office_checkin' || parsedData.token !== OFFICE_CHECKIN_TOKEN) {
+        throw new Error('Invalid QR Code - Please scan the official office check-in code.');
       }
 
       console.log('[ScannerScreen] Fetching location...');
