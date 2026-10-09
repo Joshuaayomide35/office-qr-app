@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl, ScrollView } from 'react-native';
 import { supabase } from '../lib/supabase';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
@@ -15,6 +15,16 @@ type AttendanceRow = {
   longitude: number;
   profiles: { full_name: string; email: string } | null;
 };
+
+const COLUMN_WIDTHS = {
+  name: 160,
+  email: 220,
+  type: 110,
+  date: 120,
+  time: 110,
+};
+
+const TABLE_WIDTH = Object.values(COLUMN_WIDTHS).reduce((a, b) => a + b, 0);
 
 export default function AdminScreen() {
   const navigation = useNavigation<NavigationProp>();
@@ -56,6 +66,16 @@ export default function AdminScreen() {
     );
   }
 
+  const TableHeader = () => (
+    <View style={[styles.headerRow, { width: TABLE_WIDTH }]}>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.name }]}>Name</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.email }]}>Email</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.type }]}>Type</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.date }]}>Date</Text>
+      <Text style={[styles.headerCell, { width: COLUMN_WIDTHS.time }]}>Time</Text>
+    </View>
+  );
+
   return (
     <View style={styles.container}>
       <View style={styles.header}>
@@ -68,32 +88,41 @@ export default function AdminScreen() {
 
       {errorMessage ? <Text style={styles.errorText}>{errorMessage}</Text> : null}
 
-      <FlatList
-        data={rows}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
-        ListEmptyComponent={<Text style={styles.emptyText}>No attendance records yet.</Text>}
-        renderItem={({ item }) => (
-          <View style={styles.row}>
-            <View style={styles.rowTop}>
-              <Text style={styles.name}>{item.profiles?.full_name || 'Unknown'}</Text>
-              <View
-                style={[
-                  styles.badge,
-                  { backgroundColor: item.scan_type === 'check_in' ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)' },
-                ]}
-              >
-                <Text style={[styles.badgeText, { color: item.scan_type === 'check_in' ? '#10b981' : '#ef4444' }]}>
-                  {item.scan_type === 'check_in' ? 'Check In' : 'Check Out'}
+      <ScrollView horizontal showsHorizontalScrollIndicator={rows.length > 0}>
+        <FlatList
+          data={rows}
+          keyExtractor={(item) => item.id}
+          style={{ width: TABLE_WIDTH }}
+          contentContainerStyle={styles.listContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#6366f1" />}
+          stickyHeaderIndices={[0]}
+          ListHeaderComponent={TableHeader}
+          ListEmptyComponent={<Text style={styles.emptyText}>No attendance records yet.</Text>}
+          renderItem={({ item, index }) => {
+            const date = new Date(item.timestamp);
+            const isCheckIn = item.scan_type === 'check_in';
+            return (
+              <View style={[styles.dataRow, index % 2 === 1 && styles.dataRowAlt]}>
+                <Text style={[styles.cell, styles.cellStrong, { width: COLUMN_WIDTHS.name }]} numberOfLines={1}>
+                  {item.profiles?.full_name || 'Unknown'}
                 </Text>
+                <Text style={[styles.cell, { width: COLUMN_WIDTHS.email }]} numberOfLines={1}>
+                  {item.profiles?.email || '-'}
+                </Text>
+                <View style={{ width: COLUMN_WIDTHS.type }}>
+                  <View style={[styles.badge, { backgroundColor: isCheckIn ? 'rgba(16, 185, 129, 0.12)' : 'rgba(239, 68, 68, 0.12)' }]}>
+                    <Text style={[styles.badgeText, { color: isCheckIn ? '#10b981' : '#ef4444' }]}>
+                      {isCheckIn ? 'Check In' : 'Check Out'}
+                    </Text>
+                  </View>
+                </View>
+                <Text style={[styles.cell, { width: COLUMN_WIDTHS.date }]}>{date.toLocaleDateString()}</Text>
+                <Text style={[styles.cell, { width: COLUMN_WIDTHS.time }]}>{date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</Text>
               </View>
-            </View>
-            <Text style={styles.email}>{item.profiles?.email}</Text>
-            <Text style={styles.timestamp}>{new Date(item.timestamp).toLocaleString()}</Text>
-          </View>
-        )}
-      />
+            );
+          }}
+        />
+      </ScrollView>
     </View>
   );
 }
@@ -137,49 +166,59 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   listContent: {
-    padding: 16,
+    paddingHorizontal: 16,
+    paddingBottom: 24,
   },
   emptyText: {
     color: '#a1a1aa',
     textAlign: 'center',
     marginTop: 40,
     fontSize: 14,
+    width: TABLE_WIDTH,
   },
-  row: {
-    backgroundColor: '#121214',
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: '#27272a',
-    padding: 16,
-    marginBottom: 12,
-  },
-  rowTop: {
+  headerRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
+    backgroundColor: '#09090b',
+    paddingVertical: 14,
+    borderBottomWidth: 2,
+    borderBottomColor: '#27272a',
+    marginTop: 16,
   },
-  name: {
+  headerCell: {
+    color: '#a1a1aa',
+    fontSize: 12,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingRight: 8,
+  },
+  dataRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#1f1f23',
+  },
+  dataRowAlt: {
+    backgroundColor: '#121214',
+  },
+  cell: {
+    color: '#e4e4e7',
+    fontSize: 13,
+    paddingRight: 8,
+  },
+  cellStrong: {
     color: '#ffffff',
-    fontSize: 16,
     fontWeight: '600',
   },
   badge: {
+    alignSelf: 'flex-start',
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 12,
   },
   badgeText: {
-    fontSize: 12,
+    fontSize: 11,
     fontWeight: '700',
-  },
-  email: {
-    color: '#a1a1aa',
-    fontSize: 13,
-    marginBottom: 6,
-  },
-  timestamp: {
-    color: '#71717a',
-    fontSize: 12,
   },
 });
