@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, ScrollView } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import Avatar from '../components/Avatar';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -54,6 +55,16 @@ export default function EmployeeCalendarScreen() {
   const [loading, setLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<string>(ymd(today));
   const [errorMessage, setErrorMessage] = useState('');
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    supabase
+      .from('profiles')
+      .select('avatar_url')
+      .eq('id', employeeId)
+      .single()
+      .then(({ data }) => setAvatarUrl(data?.avatar_url || null));
+  }, [employeeId]);
 
   const fetchMonth = useCallback(async () => {
     setErrorMessage('');
@@ -105,9 +116,12 @@ export default function EmployeeCalendarScreen() {
         <TouchableOpacity onPress={() => navigation.goBack()} activeOpacity={0.7} style={styles.backButton}>
           <Ionicons name="chevron-back" size={22} color="#6366f1" />
         </TouchableOpacity>
-        <View>
-          <Text style={styles.title}>{employeeName}</Text>
-          <Text style={styles.subtitle}>Attendance calendar</Text>
+        <View style={styles.headerCenter}>
+          <Avatar uri={avatarUrl} name={employeeName} size={36} />
+          <View>
+            <Text style={styles.title}>{employeeName}</Text>
+            <Text style={styles.subtitle}>Attendance calendar</Text>
+          </View>
         </View>
         <View style={{ width: 38 }} />
       </View>
@@ -157,6 +171,7 @@ export default function EmployeeCalendarScreen() {
                       key={di}
                       style={[
                         styles.dayCell,
+                        hasCheckIn && !isSelected && styles.dayCellAvailable,
                         isSelected && styles.dayCellSelected,
                         isToday && !isSelected && styles.dayCellToday,
                       ]}
@@ -171,6 +186,11 @@ export default function EmployeeCalendarScreen() {
               </View>
             ))
           )}
+
+          <View style={styles.legendRow}>
+            <View style={styles.legendDot} />
+            <Text style={styles.legendText}>Checked in that day</Text>
+          </View>
         </View>
 
         <View style={styles.detailCard}>
@@ -236,11 +256,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#27272a',
   },
+  headerCenter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
   title: {
     color: '#ffffff',
-    fontSize: 17,
+    fontSize: 15,
     fontWeight: '700',
-    textAlign: 'center',
   },
   subtitle: {
     color: '#71717a',
@@ -326,6 +350,11 @@ const styles = StyleSheet.create({
     // @ts-ignore
     cursor: 'pointer',
   },
+  dayCellAvailable: {
+    backgroundColor: 'rgba(239, 68, 68, 0.14)',
+    borderWidth: 1,
+    borderColor: 'rgba(239, 68, 68, 0.4)',
+  },
   dayCellSelected: {
     backgroundColor: '#6366f1',
   },
@@ -346,8 +375,29 @@ const styles = StyleSheet.create({
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: '#10b981',
+    backgroundColor: '#ef4444',
     marginTop: 3,
+  },
+  legendRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 12,
+    paddingTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: '#1f1f23',
+  },
+  legendDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 3,
+    backgroundColor: 'rgba(239, 68, 68, 0.4)',
+    borderWidth: 1,
+    borderColor: '#ef4444',
+  },
+  legendText: {
+    color: '#71717a',
+    fontSize: 12,
   },
   dayDotSelected: {
     backgroundColor: '#ffffff',

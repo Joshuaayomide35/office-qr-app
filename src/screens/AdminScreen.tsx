@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
+import Avatar from '../components/Avatar';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -12,22 +13,8 @@ type EmployeeRow = {
   id: string;
   full_name: string;
   email: string;
+  avatar_url: string | null;
   lastScanType: 'check_in' | 'check_out' | null;
-};
-
-const getInitials = (name: string) =>
-  name
-    .trim()
-    .split(/\s+/)
-    .slice(0, 2)
-    .map((part) => part[0]?.toUpperCase())
-    .join('') || '?';
-
-const AVATAR_COLORS = ['#6366f1', '#10b981', '#f59e0b', '#ec4899', '#06b6d4', '#8b5cf6'];
-const avatarColorFor = (name: string) => {
-  let hash = 0;
-  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  return AVATAR_COLORS[Math.abs(hash) % AVATAR_COLORS.length];
 };
 
 export default function AdminScreen() {
@@ -42,7 +29,7 @@ export default function AdminScreen() {
 
     const { data: profiles, error: profilesError } = await supabase
       .from('profiles')
-      .select('id, full_name, email')
+      .select('id, full_name, email, avatar_url')
       .eq('status', 'approved')
       .order('full_name', { ascending: true });
 
@@ -66,6 +53,7 @@ export default function AdminScreen() {
         id: p.id,
         full_name: p.full_name,
         email: p.email,
+        avatar_url: p.avatar_url,
         lastScanType: lastByUser.get(p.id) || null,
       }))
     );
@@ -130,9 +118,7 @@ export default function AdminScreen() {
               activeOpacity={0.7}
               onPress={() => navigation.navigate('EmployeeCalendar', { employeeId: item.id, employeeName: item.full_name })}
             >
-              <View style={[styles.avatar, { backgroundColor: avatarColorFor(item.full_name) }]}>
-                <Text style={styles.avatarText}>{getInitials(item.full_name)}</Text>
-              </View>
+              <Avatar uri={item.avatar_url} name={item.full_name} size={40} />
               <View style={styles.rowInfo}>
                 <Text style={styles.name}>{item.full_name}</Text>
                 <Text style={styles.email}>{item.email}</Text>
@@ -237,18 +223,6 @@ const styles = StyleSheet.create({
     borderColor: '#27272a',
     padding: 14,
     marginBottom: 10,
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '700',
   },
   rowInfo: {
     flex: 1,

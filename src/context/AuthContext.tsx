@@ -10,6 +10,7 @@ interface AuthContextProps {
   user: User | null;
   status: ProfileStatus;
   role: ProfileRole;
+  avatarUrl: string | null;
   loading: boolean;
   refreshProfile: () => Promise<void>;
 }
@@ -19,6 +20,7 @@ const AuthContext = createContext<AuthContextProps>({
   user: null,
   status: null,
   role: null,
+  avatarUrl: null,
   loading: true,
   refreshProfile: async () => {},
 });
@@ -30,17 +32,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null);
   const [status, setStatus] = useState<ProfileStatus>(null);
   const [role, setRole] = useState<ProfileRole>(null);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   const refreshProfile = async () => {
     if (!user) {
       setStatus(null);
       setRole(null);
+      setAvatarUrl(null);
       return;
     }
     const { data, error } = await supabase
       .from('profiles')
-      .select('status, role')
+      .select('status, role, avatar_url')
       .eq('id', user.id)
       .single();
 
@@ -48,9 +52,11 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       console.error('Error fetching profile:', error);
       setStatus(null);
       setRole(null);
+      setAvatarUrl(null);
     } else if (data) {
       setStatus(data.status as ProfileStatus);
       setRole(data.role as ProfileRole);
+      setAvatarUrl(data.avatar_url as string | null);
     }
   };
 
@@ -79,7 +85,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   }, [user]);
 
   return (
-    <AuthContext.Provider value={{ session, user, status, role, loading, refreshProfile }}>
+    <AuthContext.Provider value={{ session, user, status, role, avatarUrl, loading, refreshProfile }}>
       {children}
     </AuthContext.Provider>
   );

@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Platform, ScrollView } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { supabase } from '../lib/supabase';
 import { useAuth } from '../context/AuthContext';
+import { pickAndUploadAvatar } from '../lib/avatar';
+import Avatar from '../components/Avatar';
 import { useNavigation } from '@react-navigation/native';
 import { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { RootStackParamList } from '../navigation/AppNavigator';
@@ -9,12 +12,14 @@ import { RootStackParamList } from '../navigation/AppNavigator';
 type NavigationProp = NativeStackNavigationProp<RootStackParamList, 'Home'>;
 
 export default function HomeScreen() {
-  const { user, role } = useAuth();
+  const { user, role, avatarUrl, refreshProfile } = useAuth();
   const navigation = useNavigation<NavigationProp>();
   const [profileName, setProfileName] = useState('');
   const [lastScanType, setLastScanType] = useState<'check_in' | 'check_out' | null>(null);
   const [pendingCount, setPendingCount] = useState(0);
   const [loading, setLoading] = useState(true);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState('');
 
   useEffect(() => {
     fetchData();
@@ -62,6 +67,19 @@ export default function HomeScreen() {
     await supabase.auth.signOut();
   };
 
+  const handleChangePhoto = async () => {
+    if (!user) return;
+    setPhotoError('');
+    setUploadingPhoto(true);
+    const { error } = await pickAndUploadAvatar(user.id);
+    if (error) {
+      setPhotoError(error);
+    } else {
+      await refreshProfile();
+    }
+    setUploadingPhoto(false);
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -80,7 +98,18 @@ export default function HomeScreen() {
         <View style={styles.card}>
           
           <View style={styles.header}>
+            <TouchableOpacity onPress={handleChangePhoto} disabled={uploadingPhoto} activeOpacity={0.8} style={styles.avatarWrap}>
+              <Avatar uri={avatarUrl} name={profileName || 'U'} size={84} />
+              <View style={styles.avatarEditBadge}>
+                {uploadingPhoto ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Ionicons name="camera" size={14} color="#ffffff" />
+                )}
+              </View>
+            </TouchableOpacity>
             <Text style={styles.greetingText}>Hello, {profileName}</Text>
+            {photoError ? <Text style={styles.photoErrorText}>{photoError}</Text> : null}
           </View>
 
           <View style={styles.statusSection}>
@@ -196,6 +225,30 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 24,
     alignItems: 'center',
+  },
+  avatarWrap: {
+    marginBottom: 14,
+    // @ts-ignore
+    cursor: 'pointer',
+  },
+  avatarEditBadge: {
+    position: 'absolute',
+    bottom: 0,
+    right: 0,
+    width: 26,
+    height: 26,
+    borderRadius: 13,
+    backgroundColor: '#6366f1',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#121214',
+  },
+  photoErrorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginTop: 8,
+    textAlign: 'center',
   },
   greetingText: {
     fontSize: 26,

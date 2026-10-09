@@ -15,6 +15,7 @@ CREATE TABLE IF NOT EXISTS profiles (
     phone_number TEXT,
     status TEXT DEFAULT 'pending' CHECK (status IN ('pending', 'approved', 'rejected')),
     role TEXT DEFAULT 'employee' CHECK (role IN ('employee', 'admin')),
+    avatar_url TEXT,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT timezone('utc'::text, now()) NOT NULL
 );
 
@@ -130,6 +131,24 @@ CREATE POLICY "Admins can update any profile"
     ON profiles FOR UPDATE
     USING (public.is_admin())
     WITH CHECK (public.is_admin());
+
+-- Profile picture storage. Public read (so avatars render for everyone),
+-- but each user may only upload/update files under their own user-id folder
+-- (e.g. "<user id>/avatar.jpg").
+INSERT INTO storage.buckets (id, name, public) VALUES ('avatars', 'avatars', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Avatar images are publicly accessible"
+    ON storage.objects FOR SELECT
+    USING (bucket_id = 'avatars');
+
+CREATE POLICY "Users can upload own avatar"
+    ON storage.objects FOR INSERT
+    WITH CHECK (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
+
+CREATE POLICY "Users can update own avatar"
+    ON storage.objects FOR UPDATE
+    USING (bucket_id = 'avatars' AND (storage.foldername(name))[1] = auth.uid()::text);
 
 -- Promote a user to admin manually, e.g.:
 -- UPDATE profiles SET role = 'admin' WHERE email = 'you@example.com';
