@@ -6,7 +6,7 @@ const path = require('path');
 
 const payload = JSON.stringify({
   type: 'office_checkin',
-  token: 'office-checkin-static-v1',
+  token: 'office-checkin-573adffb0ddc671b4eab6031',
 });
 
 const outPath = path.join(__dirname, '..', 'assets', 'images', 'office-checkin-qr.png');
